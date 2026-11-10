@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FC26 Auction</title>
+<script src="/engine.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF3EF;--surface:#FFFFFF;--ink:#0B1F18;--muted:#4A6358;--line:#CAD9CF;--soft:#E3ECE6;
+  --grass:#0F4C3A;--grass2:#146049;--chalk:#F4F7F4;--yellow:#FFD23F;--onyellow:#1B1500;--red:#E5383B;--ok:#157347;
+  --display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#07120E;--surface:#0E1F18;--ink:#E8F0EB;--muted:#9DB5A9;--line:#1F3A2E;--soft:#132A21;}
+}
+:root[data-theme="dark"]{--bg:#07120E;--surface:#0E1F18;--ink:#E8F0EB;--muted:#9DB5A9;--line:#1F3A2E;--soft:#132A21;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1;letter-spacing:.01em}
+.stripes{background:repeating-linear-gradient(90deg,var(--grass) 0 56px,var(--grass2) 56px 112px)}
+.band{color:var(--chalk)}
+.bandin{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.brand{font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.02em}
+.room{margin-left:auto;font-size:15px}
+.room b{font-family:var(--display);font-size:22px;letter-spacing:.12em;color:var(--yellow)}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+button{min-height:48px;padding:0 18px;border-radius:10px;border:2px solid var(--ink);background:var(--surface);cursor:pointer;font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+button.primary{background:var(--yellow);color:var(--onyellow);border-color:var(--onyellow)}
+button.solid{background:var(--grass);color:var(--chalk);border-color:var(--grass)}
+button.ghostw{background:transparent;color:var(--chalk);border-color:rgba(244,247,244,.6);min-height:40px}
+button.small{min-height:38px;padding:0 12px;font-size:14px}
+button.danger{border-color:var(--red);color:var(--red)}
+button.armed{background:var(--red);color:#fff;border-color:var(--red)}
+input[type=text],select{min-height:48px;border:2px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);width:100%}
+label{font-weight:600;font-size:14px;color:var(--muted);display:block;margin-bottom:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel + .panel{margin-top:14px}
+.home{max-width:640px;margin:0 auto}
+.hero{padding:28px 0 18px}
+.hero h1{font-size:clamp(54px,12vw,96px);font-weight:900}
+.hero p{font-size:19px;color:var(--muted);max-width:30ch;margin:10px 0 0}
+.stack{display:grid;gap:12px}
+.row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.row > input{flex:1;min-width:140px}
+.note{font-size:14px;color:var(--muted)}
+.warn{background:var(--soft);border-left:5px solid var(--yellow);padding:10px 12px;border-radius:8px;font-size:14px}
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.lot{border-radius:16px;color:var(--chalk);padding:18px;position:relative;overflow:hidden}
+.lot.hot #tmr{color:var(--red)}
+.lot.hot #tmr{background:var(--chalk);border-radius:8px;padding:0 8px}
+.lot .meta{font-size:15px;opacity:.9}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700;background:var(--chalk);color:var(--grass)}
+.lot h2{font-size:clamp(40px,8vw,68px);font-weight:900;margin:8px 0 4px}
+.shirt{position:absolute;right:16px;top:8px;font-family:var(--display);font-weight:900;font-size:clamp(72px,16vw,128px);line-height:1;color:rgba(244,247,244,.22)}
+.bidrow{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:10px}
+.big{font-family:var(--display);font-weight:900;font-size:clamp(56px,13vw,104px);line-height:.95;color:var(--yellow)}
+.who{font-size:18px;font-weight:600;padding-bottom:8px}
+.timerline{display:flex;align-items:center;gap:12px;margin-top:12px}
+#tmr{font-family:var(--display);font-weight:900;font-size:40px;min-width:3.2ch;color:var(--chalk)}
+.tbar{flex:1;height:12px;background:rgba(0,0,0,.35);border-radius:6px;overflow:hidden}
+#tbar{height:100%;background:var(--yellow);width:100%}
+.lot.hot #tbar{background:var(--red)}
+.bidbtns{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-top:14px}
+@media (max-width:560px){.bidbtns{grid-template-columns:1fr 1fr}.bidbtns .main{grid-column:1/-1}}
+.bidbtns button{min-height:56px;font-size:17px}
+.bidbtns .main{font-size:20px}
+.sub{font-size:14px;margin-top:8px;opacity:.92}
+.waiting{background:var(--soft);border-radius:16px;padding:18px}
+.waiting h2{font-size:34px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.chips button{min-height:40px;padding:0 14px;border-radius:999px;border-width:1px;border-color:var(--line)}
+.chips button.on{background:var(--grass);color:var(--chalk);border-color:var(--grass)}
+.plist{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.prow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center;width:100%;text-align:left;border-radius:0;border-width:0 0 1px 0;min-height:60px;background:var(--surface)}
+.prow:last-child{border-bottom:0}
+.prow .nm{font-weight:700}
+.prow .mt{font-size:13px;color:var(--muted)}
+.prow .rt{text-align:right}
+.prow .rt b{font-family:var(--display);font-size:26px}
+.prow.sold{opacity:.55}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.mc{border:2px solid var(--line);border-radius:12px;padding:10px;background:var(--surface);text-align:left;min-height:0;display:block;width:100%}
+.mc.turn{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow)}
+.mc.lead{background:var(--yellow);color:var(--onyellow);border-color:var(--onyellow)}
+.mc.sel{outline:3px solid var(--grass)}
+.mc .nm{font-weight:700;overflow-wrap:anywhere}
+.mc .bg{font-family:var(--display);font-weight:900;font-size:28px;line-height:1.1}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;background:var(--soft);color:var(--ink);margin-right:4px}
+.tag.t{background:var(--yellow);color:var(--onyellow)}
+.sq h3{font-size:22px;margin:10px 0 4px}
+.sq .li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sq .li span:last-child{color:var(--muted);white-space:nowrap}
+.log{max-height:260px;overflow:auto;font-size:14px}
+.log div{padding:4px 0;border-bottom:1px solid var(--line)}
+.hostbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.lobbylist{display:grid;gap:8px;margin:12px 0}
+.lobbyrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:52px;background:var(--surface)}
+.lobbyrow .nm{font-weight:700;flex:1;overflow-wrap:anywhere}
+.codebig{font-family:var(--display);font-weight:900;font-size:clamp(56px,14vw,96px);letter-spacing:.14em;line-height:1}
+.fin{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;font-weight:600;max-width:90vw;display:none;z-index:50}
+#toast.show{display:block}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const {PLAYERS,fmt,mg,soldMap,counts,maxBid,BUDGET,MAXSQ,STEP,MAXMGR}=FC26;
+const App={S:null,meId:null,token:null,code:null,offset:0,es:null,conn:true};
+const UI={name:'',code:'',q:'',grp:'ALL',avail:true,view:null,confirm:null,busy:false};
+try{UI.name=localStorage.getItem('fc26name')||'';}catch(e){}
+const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isHost=()=>!!App.S&&App.S.hostId===App.meId;
+const srvNow=()=>Date.now()+App.offset;
+let toastT=null;
+function toast(msg){const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3200);}
+
+/* ---- session (stays on this device so a refresh drops you back in) ---- */
+function loadSess(){try{return JSON.parse(localStorage.getItem('fc26sess')||'null');}catch(e){return null;}}
+function saveSess(s){try{localStorage.setItem('fc26sess',JSON.stringify(s));}catch(e){}}
+function clearSess(){try{localStorage.removeItem('fc26sess');}catch(e){}}
+
+/* ---- server talk ---- */
+function api(path,body){
+  return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).catch(()=>({ok:false,err:'Cannot reach the server'}));
+}
+function disconnect(){if(App.es){App.es.close(); App.es=null;}}
+function goHome(){disconnect(); App.S=null; App.code=null; App.meId=null; App.token=null; UI.view=null; UI.busy=false; render();}
+function connect(s){
+  disconnect(); App.code=s.code; App.meId=s.id; App.token=s.token; App.conn=true;
+  const q='code='+encodeURIComponent(s.code)+'&id='+encodeURIComponent(s.id)+'&token='+encodeURIComponent(s.token);
+  const es=new EventSource('/api/events?'+q); App.es=es;
+  es.onmessage=e=>{
+    let d; try{d=JSON.parse(e.data);}catch(x){return;}
+    App.conn=true; App.offset=d.now-Date.now();
+    if(!mg(d.S,App.meId)){toast('You are no longer in this room'); clearSess(); goHome(); return;}
+    App.S=d.S; UI.busy=false; render();
+  };
+  es.onerror=()=>{
+    App.conn=false; if(App.S) render();
+    if(es.readyState===2) recheck(s,es,q);
+  };
+}
+async function recheck(s,es,q){
+  try{
+    const r=await fetch('/api/check?'+q);
+    if(r.status===404){toast('That room has ended'); clearSess(); goHome(); return;}
+  }catch(e){}
+  setTimeout(()=>{if(App.es===es) connect(s);},2000);
+}
+async function act(it){
+  if(!App.S) return;
+  const r=await api('/api/act',{code:App.code,id:App.meId,token:App.token,action:it});
+  if(!r.ok){toast(r.err||'That did not work'); if(r.err==='Session expired'){clearSess(); goHome();}}
+}
+function cleanName(){
+  const n=(UI.name||'').trim().slice(0,16);
+  if(!n){toast('Enter your name first'); return null;}
+  try{localStorage.setItem('fc26name',n);}catch(e){}
+  return n;
+}
+async function createRoom(practice){
+  if(UI.busy) return; const name=cleanName(); if(!name) return;
+  UI.busy=true;
+  const r=await api('/api/create',{name,practice:!!practice});
+  if(!r.ok){UI.busy=false; toast(r.err||'Could not create the room'); return;}
+  const s={code:r.code,id:r.id,token:r.token,away:false}; saveSess(s); connect(s);
+}
+async function joinRoom(){
+  if(UI.busy) return; const name=cleanName(); if(!name) return;
+  const code=(UI.code||'').trim().toUpperCase();
+  if(!/^[A-Z2-9]{6}$/.test(code)){toast('Room codes are 6 characters'); return;}
+  UI.busy=true;
+  const r=await api('/api/join',{code,name});
+  if(!r.ok){UI.busy=false; toast(r.err||'Could not join'); return;}
+  const s={code:r.code,id:r.id,token:r.token,away:false}; saveSess(s); connect(s);
+}
+
+/* ---- views ---- */
+function band(S){
+  const code=S?(S.practice?'Practice room':'Room <b>'+esc(S.code)+'</b>'):'';
+  const st=S&&!App.conn?'<span class="note" style="color:var(--yellow);margin-right:10px">Reconnecting</span>':'';
+  const btn=S?'<button class="ghostw" data-act="home">Exit</button>':'';
+  return '<header class="band stripes"><div class="bandin"><div class="brand">FC26 Auction</div><div class="room">'+st+code+'</div>'+btn+'</div></header>';
+}
+function homeView(){
+  const s=loadSess();
+  const back=s?'<button class="solid" data-act="return">Return to room '+esc(s.code)+'</button>':'';
+  return band(null)+'<main class="wrap"><section class="home"><div class="hero"><h1>FC26 Auction</h1><p>173 players rated 83 or higher. \u00a3115m each. Seventeen spots.</p></div>'+
+  '<div class="panel stack"><div><label for="name">Your name</label><input type="text" id="name" maxlength="16" autocomplete="off" value="'+esc(UI.name)+'"></div>'+
+  '<button class="primary" data-act="create">Create a room</button>'+
+  '<div class="row"><input type="text" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="Room code" value="'+esc(UI.code)+'"><button class="solid" data-act="join">Join room</button></div>'+
+  back+'<button data-act="practice">Practice against bots</button>'+
+  '<p class="note">Rooms take 2 to 12 managers. Bots only appear if the host adds them, so a 1v1 is just you and one friend.</p></div></section></main>';
+}
+
+function lobbyView(S){
+  const host=isHost(), me=mg(S,App.meId);
+  const rows=S.managers.map(m=>{
+    const tags=(m.id===S.hostId?'<span class="tag">Host</span>':'')+(m.bot?'<span class="tag">Bot</span>':'')+(m.id===App.meId?'<span class="tag">You</span>':'');
+    const st=m.id===S.hostId?'':(m.ready?'<span class="tag t">Ready</span>':'<span class="tag">Not ready</span>');
+    const kick=host&&m.id!==S.hostId?'<button class="small danger" data-act="kick" data-arg="'+esc(m.id)+'">Remove</button>':'';
+    return '<div class="lobbyrow"><span class="nm">'+esc(m.name)+'</span>'+tags+st+kick+'</div>';
+  }).join('');
+  let ctl='';
+  if(host){
+    const opts=[10,15,20,30,45].map(s=>'<option value="'+s+'"'+(s===S.timer?' selected':'')+'>'+s+' seconds</option>').join('');
+    ctl='<div class="stack"><div><label for="tsel">Bidding timer</label><select id="tsel">'+opts+'</select></div>'+
+      '<button data-act="addbot"'+(S.managers.length>=MAXMGR?' disabled':'')+'>Add a bot</button>'+
+      '<button class="primary" data-act="start">Start the auction</button>'+
+      (S.practice?'':'<p class="note">Share the code. Bots only join if you add them.</p>')+'</div>';
+  } else if(me){
+    ctl='<div class="stack"><button class="primary" data-act="ready" data-arg="'+(me.ready?'0':'1')+'">'+(me.ready?'I am not ready':'I am ready')+'</button><p class="note">The host starts once everyone is ready.</p></div>';
+  }
+  const head=S.practice?'<h2>Practice room</h2><p class="note">You against bots. Start whenever you like.</p>':
+    '<p class="note">Friends join with this code</p><div class="codebig">'+esc(S.code)+'</div>';
+  return band(S)+'<main class="wrap"><div class="cols"><div class="panel">'+head+'<div class="lobbylist">'+rows+'</div></div><div class="panel">'+ctl+'</div></div></main>';
+}
+function filteredPlayers(S){
+  const sold=soldMap(S), q=norm(UI.q.trim());
+  return PLAYERS.filter(p=>(UI.grp==='ALL'||p.group===UI.grp)&&(!UI.avail||sold[p.i]===undefined)&&(!q||p.key.includes(q)))
+    .sort((a,b)=>b.ovr-a.ovr||a.name.localeCompare(b.name));
+}
+function listHtml(S){
+  const sold=soldMap(S), turn=S.phase==='auction'&&!S.auction&&S.turn===App.meId;
+  const all=filteredPlayers(S), shown=all.slice(0,60);
+  if(!shown.length) return '<div class="prow"><span class="note">No players match.</span></div>';
+  const rows=shown.map(p=>{
+    const owner=sold[p.i]!==undefined?mg(S,sold[p.i]):null;
+    const right='<span class="rt"><b>'+p.ovr+'</b><br><span class="mt">'+fmt(p.price)+'</span></span>';
+    const left='<span><span class="nm">'+esc(p.name)+'</span><br><span class="mt">'+esc(p.club)+', '+p.pos+' ('+p.group+')'+(owner?', sold to '+esc(owner.name):'')+'</span></span>';
+    const can=turn&&!owner;
+    return '<button class="prow'+(owner?' sold':'')+'" '+(can?'data-act="nom" data-arg="'+p.i+'"':'disabled')+'>'+left+right+'</button>';
+  }).join('');
+  return rows+(all.length>60?'<div class="prow"><span class="note">Showing 60 of '+all.length+'. Type to narrow it down.</span></div>':'');
+}
+function renderList(){const el=$('#plist'); if(el&&App.S) el.innerHTML=listHtml(App.S);}
+function lotHtml(S){
+  const a=S.auction, me=mg(S,App.meId);
+  if(!a) return '';
+  const p=PLAYERS[a.p], leader=a.leader?mg(S,a.leader):null, nom=mg(S,a.nominator);
+  const shown=a.leader?a.cur:a.open;
+  const next=a.cur+STEP, paused=a.pausedLeft!=null;
+  let why='';
+  if(!me) why='You are watching'; else if(paused) why='Paused'; else if(a.leader===me.id) why='You lead'; else if(me.squad.length>=MAXSQ) why='Squad full'; else if(next>maxBid(me)) why='Over your budget';
+  const can=!why;
+  const mk=(amt,cls)=>'<button class="'+cls+'" data-act="bid" data-arg="'+amt+'"'+((can&&amt<=maxBid(me))?'':' disabled')+'>'+fmt(amt)+'</button>';
+  const btns=me?'<div class="bidbtns">'+mk(next,'primary main')+mk(next+10,'')+mk(next+20,'')+mk(next+50,'')+'</div>':'';
+  return '<div class="lot stripes" id="lot"><span class="shirt">'+p.ovr+'</span><div class="meta"><span class="chip">'+p.group+'</span> '+esc(p.pos)+', '+esc(p.club)+', '+esc(p.league)+'</div>'+
+    '<h2>'+esc(p.name)+'</h2><div class="bidrow"><div class="big" id="bid">'+fmt(shown)+'</div><div class="who">'+(leader?'Leading: '+esc(leader.name)+(leader.id===App.meId?' (you)':''):'Opening price, no bids yet')+'</div></div>'+
+    '<div class="timerline"><span id="tmr">0.0</span><div class="tbar"><div id="tbar"></div></div></div>'+btns+
+    '<div class="sub">'+(why?esc(why)+'. ':'')+(me?'Your max bid is '+fmt(maxBid(me))+'. ':'')+'Nominated by '+esc(nom?nom.name:'?')+'.</div></div>';
+}
+function nominateHtml(S){
+  const turnM=mg(S,S.turn), mine=S.turn===App.meId;
+  const chips=['ALL','GK','DEF','MID','FWD'].map(g=>'<button class="'+(UI.grp===g?'on':'')+'" data-act="grp" data-arg="'+g+'">'+(g==='ALL'?'All':g)+'</button>').join('');
+  const head=mine?'<h2>Your nomination</h2><p class="note">Tap a player to put him up for auction.</p>':'<h2>'+esc(turnM?turnM.name:'Someone')+' is choosing</h2><p class="note">You can browse the pool while you wait.</p>';
+  return '<div class="waiting">'+head+
+    '<div class="stack" style="margin-top:12px"><input type="text" id="q" placeholder="Search player or club" autocomplete="off" value="'+esc(UI.q)+'">'+
+    '<div class="chips">'+chips+'<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:14px"><input type="checkbox" id="avail"'+(UI.avail?' checked':'')+'> Available only</label></div>'+
+    (mine?'<button class="primary" data-act="rand">Pick a random player</button>':'')+
+    '<div class="plist" id="plist">'+listHtml(S)+'</div></div></div>';
+}
+function managersHtml(S){
+  const a=S.auction;
+  return '<div class="mgrid">'+S.managers.map(m=>{
+    const c=counts(m);
+    const cls='mc'+(S.turn===m.id&&!a?' turn':'')+(a&&a.leader===m.id?' lead':'')+(UI.view===m.id?' sel':'');
+    const tags=(S.turn===m.id&&S.phase==='auction'?'<span class="tag t">TURN</span>':'')+(m.id===S.hostId?'<span class="tag">Host</span>':'')+(m.bot?'<span class="tag">Bot</span>':'')+(m.id===App.meId?'<span class="tag">You</span>':'');
+    return '<button class="'+cls+'" data-act="view" data-arg="'+esc(m.id)+'"><div class="nm">'+esc(m.name)+'</div><div>'+tags+'</div><div class="bg">'+fmt(m.budget)+'</div><div class="note" style="color:inherit">'+m.squad.length+'/'+MAXSQ+' players. GK '+c.GK+', DEF '+c.DEF+', MID '+c.MID+', FWD '+c.FWD+'</div></button>';
+  
