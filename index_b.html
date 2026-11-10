@@ -1,0 +1,201 @@
+  '<div class="panel stack"><div><label for="name">Your name</label><input type="text" id="name" maxlength="16" autocomplete="off" value="'+esc(UI.name)+'"></div>'+
+  '<button class="primary" data-act="create">Create a room</button>'+
+  '<div class="row"><input type="text" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="Room code" value="'+esc(UI.code)+'"><button class="solid" data-act="join">Join room</button></div>'+
+  back+'<button data-act="practice">Practice against bots</button>'+
+  '<p class="note">Rooms take 2 to 12 managers. Bots only appear if the host adds them, so a 1v1 is just you and one friend.</p></div></section></main>';
+}
+
+function lobbyView(S){
+  const host=isHost(), me=mg(S,App.meId);
+  const rows=S.managers.map(m=>{
+    const tags=(m.id===S.hostId?'<span class="tag">Host</span>':'')+(m.bot?'<span class="tag">Bot</span>':'')+(m.id===App.meId?'<span class="tag">You</span>':'');
+    const st=m.id===S.hostId?'':(m.ready?'<span class="tag t">Ready</span>':'<span class="tag">Not ready</span>');
+    const kick=host&&m.id!==S.hostId?'<button class="small danger" data-act="kick" data-arg="'+esc(m.id)+'">Remove</button>':'';
+    return '<div class="lobbyrow"><span class="nm">'+esc(m.name)+'</span>'+tags+st+kick+'</div>';
+  }).join('');
+  let ctl='';
+  if(host){
+    const opts=[10,15,20,30,45].map(s=>'<option value="'+s+'"'+(s===S.timer?' selected':'')+'>'+s+' seconds</option>').join('');
+    ctl='<div class="stack"><div><label for="tsel">Bidding timer</label><select id="tsel">'+opts+'</select></div>'+
+      '<button data-act="addbot"'+(S.managers.length>=MAXMGR?' disabled':'')+'>Add a bot</button>'+
+      '<button class="primary" data-act="start">Start the auction</button>'+
+      (S.practice?'':'<p class="note">Share the code. Bots only join if you add them.</p>')+'</div>';
+  } else if(me){
+    ctl='<div class="stack"><button class="primary" data-act="ready" data-arg="'+(me.ready?'0':'1')+'">'+(me.ready?'I am not ready':'I am ready')+'</button><p class="note">The host starts once everyone is ready.</p></div>';
+  }
+  const head=S.practice?'<h2>Practice room</h2><p class="note">You against bots. Start whenever you like.</p>':
+    '<p class="note">Friends join with this code</p><div class="codebig">'+esc(S.code)+'</div>';
+  return band(S)+'<main class="wrap"><div class="cols"><div class="panel">'+head+'<div class="lobbylist">'+rows+'</div></div><div class="panel">'+ctl+'</div></div></main>';
+}
+function filteredPlayers(S){
+  const sold=soldMap(S), q=norm(UI.q.trim());
+  return PLAYERS.filter(p=>(UI.grp==='ALL'||p.group===UI.grp)&&(!UI.avail||sold[p.i]===undefined)&&(!q||p.key.includes(q)))
+    .sort((a,b)=>b.ovr-a.ovr||a.name.localeCompare(b.name));
+}
+function listHtml(S){
+  const sold=soldMap(S), turn=S.phase==='auction'&&!S.auction&&S.turn===App.meId;
+  const all=filteredPlayers(S), shown=all.slice(0,60);
+  if(!shown.length) return '<div class="prow"><span class="note">No players match.</span></div>';
+  const rows=shown.map(p=>{
+    const owner=sold[p.i]!==undefined?mg(S,sold[p.i]):null;
+    const right='<span class="rt"><b>'+p.ovr+'</b><br><span class="mt">'+fmt(p.price)+'</span></span>';
+    const left='<span><span class="nm">'+esc(p.name)+'</span><br><span class="mt">'+esc(p.club)+', '+p.pos+' ('+p.group+')'+(owner?', sold to '+esc(owner.name):'')+'</span></span>';
+    const can=turn&&!owner;
+    return '<button class="prow'+(owner?' sold':'')+'" '+(can?'data-act="nom" data-arg="'+p.i+'"':'disabled')+'>'+left+right+'</button>';
+  }).join('');
+  return rows+(all.length>60?'<div class="prow"><span class="note">Showing 60 of '+all.length+'. Type to narrow it down.</span></div>':'');
+}
+function renderList(){const el=$('#plist'); if(el&&App.S) el.innerHTML=listHtml(App.S);}
+function lotHtml(S){
+  const a=S.auction, me=mg(S,App.meId);
+  if(!a) return '';
+  const p=PLAYERS[a.p], leader=a.leader?mg(S,a.leader):null, nom=mg(S,a.nominator);
+  const shown=a.leader?a.cur:a.open;
+  const next=a.cur+STEP, paused=a.pausedLeft!=null;
+  let why='';
+  if(!me) why='You are watching'; else if(paused) why='Paused'; else if(a.leader===me.id) why='You lead'; else if(me.squad.length>=MAXSQ) why='Squad full'; else if(next>maxBid(me)) why='Over your budget';
+  const can=!why;
+  const mk=(amt,cls)=>'<button class="'+cls+'" data-act="bid" data-arg="'+amt+'"'+((can&&amt<=maxBid(me))?'':' disabled')+'>'+fmt(amt)+'</button>';
+  const btns=me?'<div class="bidbtns">'+mk(next,'primary main')+mk(next+10,'')+mk(next+20,'')+mk(next+50,'')+'</div>':'';
+  return '<div class="lot stripes" id="lot"><span class="shirt">'+p.ovr+'</span><div class="meta"><span class="chip">'+p.group+'</span> '+esc(p.pos)+', '+esc(p.club)+', '+esc(p.league)+'</div>'+
+    '<h2>'+esc(p.name)+'</h2><div class="bidrow"><div class="big" id="bid">'+fmt(shown)+'</div><div class="who">'+(leader?'Leading: '+esc(leader.name)+(leader.id===App.meId?' (you)':''):'Opening price, no bids yet')+'</div></div>'+
+    '<div class="timerline"><span id="tmr">0.0</span><div class="tbar"><div id="tbar"></div></div></div>'+btns+
+    '<div class="sub">'+(why?esc(why)+'. ':'')+(me?'Your max bid is '+fmt(maxBid(me))+'. ':'')+'Nominated by '+esc(nom?nom.name:'?')+'.</div></div>';
+}
+function nominateHtml(S){
+  const turnM=mg(S,S.turn), mine=S.turn===App.meId;
+  const chips=['ALL','GK','DEF','MID','FWD'].map(g=>'<button class="'+(UI.grp===g?'on':'')+'" data-act="grp" data-arg="'+g+'">'+(g==='ALL'?'All':g)+'</button>').join('');
+  const head=mine?'<h2>Your nomination</h2><p class="note">Tap a player to put him up for auction.</p>':'<h2>'+esc(turnM?turnM.name:'Someone')+' is choosing</h2><p class="note">You can browse the pool while you wait.</p>';
+  return '<div class="waiting">'+head+
+    '<div class="stack" style="margin-top:12px"><input type="text" id="q" placeholder="Search player or club" autocomplete="off" value="'+esc(UI.q)+'">'+
+    '<div class="chips">'+chips+'<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:14px"><input type="checkbox" id="avail"'+(UI.avail?' checked':'')+'> Available only</label></div>'+
+    (mine?'<button class="primary" data-act="rand">Pick a random player</button>':'')+
+    '<div class="plist" id="plist">'+listHtml(S)+'</div></div></div>';
+}
+function managersHtml(S){
+  const a=S.auction;
+  return '<div class="mgrid">'+S.managers.map(m=>{
+    const c=counts(m);
+    const cls='mc'+(S.turn===m.id&&!a?' turn':'')+(a&&a.leader===m.id?' lead':'')+(UI.view===m.id?' sel':'');
+    const tags=(S.turn===m.id&&S.phase==='auction'?'<span class="tag t">TURN</span>':'')+(m.id===S.hostId?'<span class="tag">Host</span>':'')+(m.bot?'<span class="tag">Bot</span>':'')+(m.id===App.meId?'<span class="tag">You</span>':'');
+    return '<button class="'+cls+'" data-act="view" data-arg="'+esc(m.id)+'"><div class="nm">'+esc(m.name)+'</div><div>'+tags+'</div><div class="bg">'+fmt(m.budget)+'</div><div class="note" style="color:inherit">'+m.squad.length+'/'+MAXSQ+' players. GK '+c.GK+', DEF '+c.DEF+', MID '+c.MID+', FWD '+c.FWD+'</div></button>';
+  }).join('')+'</div>';
+}
+function squadHtml(S,m){
+  if(!m) return '';
+  const paid={}; S.sales.forEach(s=>{paid[s.p]=s.price;});
+  const groups=['GK','DEF','MID','FWD'].map(g=>{
+    const ps=m.squad.map(i=>PLAYERS[i]).filter(p=>p.group===g).sort((a,b)=>b.ovr-a.ovr);
+    if(!ps.length) return '';
+    return '<h3>'+g+' ('+ps.length+')</h3>'+ps.map(p=>'<div class="li"><span>'+esc(p.name)+' ('+p.pos+', '+p.ovr+')</span><span>'+fmt(paid[p.i]||0)+'</span></div>').join('');
+  }).join('');
+  return '<div class="sq"><h2>'+esc(m.name)+(m.id===App.meId?' (you)':'')+'</h2>'+(groups||'<p class="note">No players yet.</p>')+'</div>';
+}
+function logHtml(S){
+  return '<div class="log">'+S.log.slice(-25).reverse().map(l=>'<div>'+esc(l.m)+'</div>').join('')+'</div>';
+}
+function hostBar(S){
+  if(!isHost()||S.phase!=='auction') return '';
+  const a=S.auction;
+  const cb=(key,label,dis)=>'<button class="small'+(UI.confirm===key?' armed':' danger')+'" data-act="confirm" data-arg="'+key+'"'+(dis?' disabled':'')+'>'+(UI.confirm===key?'Tap again to confirm':label)+'</button>';
+  return '<div class="hostbar">'+
+    (a?(a.pausedLeft!=null?'<button class="small solid" data-act="resume">Resume</button>':'<button class="small" data-act="pause">Pause</button>')+cb('close','Close auction now',false):'')+
+    cb('undo','Undo last sale',!S.sales.length)+cb('finish','Finish room',!!a)+'</div>';
+}
+function auctionView(S){
+  const me=mg(S,App.meId);
+  if(!UI.view||!mg(S,UI.view)) UI.view=App.meId;
+  const main=S.auction?lotHtml(S):nominateHtml(S);
+  const mine=me?'<div class="panel" style="margin-top:14px"><b>Your cash '+fmt(me.budget)+'</b>, '+me.squad.length+' of '+MAXSQ+' players</div>':'';
+  return band(S)+'<main class="wrap">'+hostBar(S)+'<div class="cols"><div>'+main+'</div><div><div class="panel"><h3 style="font-size:24px;margin-bottom:10px">Managers</h3>'+managersHtml(S)+'</div>'+mine+
+    '<div class="panel" style="margin-top:14px">'+squadHtml(S,mg(S,UI.view))+'</div><div class="panel" style="margin-top:14px"><h3 style="font-size:24px;margin-bottom:6px">Activity</h3>'+logHtml(S)+'</div></div></div></main>';
+}
+function finishedView(S){
+  const cards=S.managers.map(m=>{
+    const spent=BUDGET-m.budget, avg=m.squad.length?(m.squad.reduce((t,i)=>t+PLAYERS[i].ovr,0)/m.squad.length).toFixed(1):'0';
+    return '<div class="panel"><div class="note">Spent '+fmt(spent)+', left '+fmt(m.budget)+', average rating '+avg+'</div>'+squadHtml(S,m)+'</div>';
+  }).join('');
+  return band(S)+'<main class="wrap"><h1 style="font-size:56px;margin:6px 0 14px">Final squads</h1><div class="fin">'+cards+'</div><div class="panel" style="margin-top:14px"><h3 style="font-size:24px;margin-bottom:6px">Activity</h3>'+logHtml(S)+'</div></main>';
+}
+
+function view(){
+  const S=App.S;
+  if(!S) return homeView();
+  if(S.phase==='lobby') return lobbyView(S);
+  if(S.phase==='finished') return finishedView(S);
+  return auctionView(S);
+}
+function render(){
+  const f=document.activeElement, keep=f&&f.id?{id:f.id,s:f.selectionStart}:null;
+  $('#app').innerHTML=view();
+  if(keep&&(keep.id==='q'||keep.id==='name'||keep.id==='code')){
+    const el=document.getElementById(keep.id);
+    if(el){el.focus(); try{el.setSelectionRange(keep.s,keep.s);}catch(e){}}
+  }
+  updateTimer();
+}
+function updateTimer(){
+  const S=App.S, a=S&&S.auction, t=$('#tmr'); if(!a||!t) return;
+  const paused=a.pausedLeft!=null;
+  const left=Math.max(0,paused?a.pausedLeft:a.endAt-srvNow());
+  t.textContent=(left/1000).toFixed(1);
+  const bar=$('#tbar'); if(bar) bar.style.width=Math.min(100,left/(S.timer*1000)*100)+'%';
+  const lot=$('#lot'); if(lot) lot.classList.toggle('hot',left<=5000&&!paused);
+}
+
+/* ---- events ---- */
+function handle(a,arg){
+  switch(a){
+    case 'create': createRoom(false); break;
+    case 'practice': createRoom(true); break;
+    case 'join': joinRoom(); break;
+    case 'return':{const s=loadSess(); if(s){s.away=false; saveSess(s); connect(s);} break;}
+    case 'home':{
+      const S=App.S, s=loadSess();
+      if(S&&S.phase==='lobby'&&!isHost()){act({type:'leave'}); clearSess();}
+      else if(s){s.away=true; saveSess(s);}
+      goHome(); break;}
+    case 'ready': act({type:'ready',value:arg==='1'}); break;
+    case 'start': act({type:'start'}); break;
+    case 'addbot': act({type:'addbot'}); break;
+    case 'kick': act({type:'kick',id:arg}); break;
+    case 'nom': act({type:'nominate',p:Number(arg)}); break;
+    case 'rand': act({type:'random'}); break;
+    case 'bid': act({type:'bid',amount:Number(arg)}); break;
+    case 'pause': act({type:'pause'}); break;
+    case 'resume': act({type:'resume'}); break;
+    case 'grp': UI.grp=arg; render(); break;
+    case 'view': UI.view=arg; render(); break;
+    case 'confirm':
+      if(UI.confirm===arg){UI.confirm=null; act({type:arg});}
+      else{UI.confirm=arg; render(); setTimeout(()=>{if(UI.confirm===arg){UI.confirm=null; render();}},3000);}
+      break;
+  }
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(!b||b.disabled) return; handle(b.dataset.act,b.dataset.arg);});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='name') UI.name=t.value;
+  else if(t.id==='code'){UI.code=t.value.toUpperCase(); t.value=UI.code;}
+  else if(t.id==='q'){UI.q=t.value; renderList();}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='tsel') act({type:'timer',sec:Number(t.value)});
+  else if(t.id==='avail'){UI.avail=t.checked; renderList();}
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  const s=loadSess();
+  if(App.S&&s&&!s.away&&(!App.es||App.es.readyState===2)) connect(s);
+});
+setInterval(updateTimer,100);
+
+/* ---- boot ---- */
+render();
+(function(){const s=loadSess(); if(s&&!s.away) connect(s);})();
+
+</script>
+</body>
+  </html>
+    
