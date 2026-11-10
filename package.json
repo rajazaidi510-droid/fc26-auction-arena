@@ -1,0 +1,8 @@
+{
+  "name": "fc26-auction",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FC26 83+ auction game. 2 to 12 managers, server-enforced rules, no dependencies.",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
