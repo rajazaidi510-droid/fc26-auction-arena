@@ -9,7 +9,19 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const E = require('./engine.js');
+function joined(a, b) {
+  return fs.readFileSync(path.join(__dirname, a), 'utf8') + fs.readFileSync(path.join(__dirname, b), 'utf8');
+}
+const ENGINE_SRC = joined('engine.js', 'engine_b.js');
+const HTML = joined('index.html', 'index_b.html');
+const E = (() => { const m = { exports: {} }; new Function('module', ENGINE_SRC)(m); return m.exports; })();
+if (E.PLAYERS.length !== 173) throw new Error('Player list is damaged: ' + E.PLAYERS.length + ' players instead of 173');
+const WANT = { engine: '44034e3dcf9ba52ac171703bd19e6675ee0e6b4d150d4e442c9c1c3c747e7983', html: 'cc0b6c71d2c1d6dd6e2c6421af8b599bb61d3d5149adfa7659efb12eda20e57a' };
+const SELF = {
+  engine: crypto.createHash('sha256').update(ENGINE_SRC).digest('hex') === WANT.engine,
+  html: crypto.createHash('sha256').update(HTML).digest('hex') === WANT.html
+};
+console.log('selftest ' + JSON.stringify(SELF));
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -170,26 +182,24 @@ async function api(req, res, u) {
 }
 
 const STATIC = {
-  '/': [path.join(PUB, 'index.html'), 'text/html; charset=utf-8'],
-  '/index.html': [path.join(PUB, 'index.html'), 'text/html; charset=utf-8'],
-  '/engine.js': [path.join(__dirname, 'engine.js'), 'application/javascript; charset=utf-8']
+  '/': [HTML, 'text/html; charset=utf-8'],
+  '/index.html': [HTML, 'text/html; charset=utf-8'],
+  '/engine.js': [ENGINE_SRC, 'application/javascript; charset=utf-8']
 };
 
 const server = http.createServer((req, res) => {
   let u;
   try { u = new URL(req.url, 'http://localhost'); } catch (e) { res.writeHead(400); return res.end(); }
   if (u.pathname === '/healthz') { res.writeHead(200); return res.end('ok'); }
+  if (u.pathname === '/selftest') return send(res, 200, SELF);
   if (u.pathname.startsWith('/api/')) {
     api(req, res, u).catch(e => { console.error(e); try { send(res, 500, { ok: false, err: 'Server error' }); } catch (x) { /* ignore */ } });
     return;
   }
   const s = STATIC[u.pathname];
   if (!s) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
-  fs.readFile(s[0], (err, buf) => {
-    if (err) { res.writeHead(500); return res.end('Server error'); }
-    res.writeHead(200, { 'Content-Type': s[1], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
-    res.end(buf);
-  });
+  res.writeHead(200, { 'Content-Type': s[1], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
+  res.end(s[0]);
 });
 
 /* ---------- loops ---------- */
@@ -217,3 +227,4 @@ for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { dirty = true; s
 
 load();
 server.listen(PORT, () => console.log('FC26 Auction running on port ' + PORT));
+      
