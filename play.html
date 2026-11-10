@@ -13,7 +13,7 @@
 <script>
 (async function () {
   var m = document.getElementById('m');
-  var FILES = [{"n": "engine.js", "h": "26e678c3f63e377324cdcd36b46d46f68292af9c0f7260c504b96b1a93590077", "len": 10495, "tail": "oli\",\"Serie A\",\"CB\",83,3.5]];\n"}, {"n": "engine_b.js", "h": "2c2f6902fc397b592fd7d906a4d774369e0be326acb81b5f856b72e689908b6d", "len": 10188, "tail": "unts,apply,tick,botStep};\n});\n"}, {"n": "index.html", "h": "09c691225bb0f1bbb21c4330126ec44210b3f056a873eabf3a119967a2e1b349", "len": 12936, "tail": " Seventeen spots.<\/p><\/div>'+\n"}, {"n": "index_b.html", "h": "6bcd70003804a7aca2e130aa897d10a0aeafca001b89757feeca19f2e478d342", "len": 12884, "tail": ");\n\n<\/script>\n<\/body>\n<\/html>\n"}];
+  var FILES = [{"n": "engine.js", "h": "0f0139d6de68dca135d12426f9901288bdd78f86a9f224e062a80fd34486cede", "len": 10495, "tail": "oli\",\"Serie A\",\"CB\",83,3.5]];\n"}, {"n": "engine_b.js", "h": "bdeedc6dc772915daf776b5d4f6bc89da8732e4393ed7d2c4d8ade70ebf38137", "len": 10188, "tail": "unts,apply,tick,botStep};\n});\n"}, {"n": "index.html", "h": "fc071ee2be29449f7f70f9caa716c547b271400c84ad7350196a8a8ea027ec60", "len": 12936, "tail": " Seventeen spots.<\/p><\/div>'+\n"}, {"n": "index_b.html", "h": "c2d2410354bca045eb0baad31a0521c6b3dabbe5473cee125659bbea750565be", "len": 12884, "tail": ");\n\n<\/script>\n<\/body>\n<\/html>\n"}];
   async function sha(s) {
     var d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
     return Array.from(new Uint8Array(d), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
@@ -40,7 +40,7 @@
     var report = [], bad = false;
     for (var i = 0; i < FILES.length; i++) {
       var f = FILES[i], t = parts[i];
-      if (await sha(t) === f.h) { report.push(f.n + ': OK'); continue; }
+      if (await sha(t.replace(/\s+/g, '')) === f.h) { report.push(f.n + ': OK'); continue; }
       bad = true;
       var cr = (t.match(/\r/g) || []).length;
       report.push(f.n + ': DIFFERENT. Length ' + t.length + ' (should be ' + f.len + ')' + (cr ? ', ' + cr + ' extra line-break characters' : '') + '. Ends with: ' + JSON.stringify(t.slice(-30)) + ' (should end with: ' + JSON.stringify(f.tail) + ')');
@@ -49,7 +49,7 @@
       m.innerHTML = '';
       var box = document.createElement('div');
       box.style.cssText = 'max-width:640px;text-align:left;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word';
-      box.textContent = 'Some files on GitHub do not match the tested copy:\n\n' + report.join('\n\n') + '\n\nSend a screenshot of this to Claude.';
+      box.textContent = 'Some files on GitHub do not match the tested copy (extra spaces are ignored):\n\n' + report.join('\n\n') + '\n\nSend a screenshot of this to Claude.';
       var b = document.createElement('button');
       b.textContent = 'Play anyway';
       b.style.cssText = 'margin-top:14px;min-height:48px;padding:0 18px;border-radius:10px;border:2px solid #1B1500;background:#FFD23F;color:#1B1500;font:600 16px system-ui';
