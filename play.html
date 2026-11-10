@@ -13,7 +13,7 @@
 <script>
 (async function () {
   var m = document.getElementById('m');
-  var WANT = { engine: '44034e3dcf9ba52ac171703bd19e6675ee0e6b4d150d4e442c9c1c3c747e7983', page: 'cc0b6c71d2c1d6dd6e2c6421af8b599bb61d3d5149adfa7659efb12eda20e57a' };
+  var FILES = [{"n": "engine.js", "h": "26e678c3f63e377324cdcd36b46d46f68292af9c0f7260c504b96b1a93590077", "len": 10495, "tail": "oli\",\"Serie A\",\"CB\",83,3.5]];\n"}, {"n": "engine_b.js", "h": "2c2f6902fc397b592fd7d906a4d774369e0be326acb81b5f856b72e689908b6d", "len": 10188, "tail": "unts,apply,tick,botStep};\n});\n"}, {"n": "index.html", "h": "09c691225bb0f1bbb21c4330126ec44210b3f056a873eabf3a119967a2e1b349", "len": 12936, "tail": " Seventeen spots.<\/p><\/div>'+\n"}, {"n": "index_b.html", "h": "6bcd70003804a7aca2e130aa897d10a0aeafca001b89757feeca19f2e478d342", "len": 12884, "tail": ");\n\n<\/script>\n<\/body>\n<\/html>\n"}];
   async function sha(s) {
     var d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
     return Array.from(new Uint8Array(d), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
@@ -37,18 +37,24 @@
       return r.text();
     };
     var parts = await Promise.all([get('engine.js'), get('engine_b.js'), get('index.html'), get('index_b.html'), get('p2p.js')]);
-    var bad = [];
-    if (await sha(parts[0] + parts[1]) !== WANT.engine) bad.push('engine.js and engine_b.js');
-    if (await sha(parts[2] + parts[3]) !== WANT.page) bad.push('index.html and index_b.html');
-    if (bad.length) {
+    var report = [], bad = false;
+    for (var i = 0; i < FILES.length; i++) {
+      var f = FILES[i], t = parts[i];
+      if (await sha(t) === f.h) { report.push(f.n + ': OK'); continue; }
+      bad = true;
+      var cr = (t.match(/\r/g) || []).length;
+      report.push(f.n + ': DIFFERENT. Length ' + t.length + ' (should be ' + f.len + ')' + (cr ? ', ' + cr + ' extra line-break characters' : '') + '. Ends with: ' + JSON.stringify(t.slice(-30)) + ' (should end with: ' + JSON.stringify(f.tail) + ')');
+    }
+    if (bad) {
       m.innerHTML = '';
-      var t = document.createElement('div');
-      t.textContent = 'These files on GitHub do not match the tested copy: ' + bad.join(' and ') + '. Re-paste them from the fixed-files page.';
+      var box = document.createElement('div');
+      box.style.cssText = 'max-width:640px;text-align:left;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word';
+      box.textContent = 'Some files on GitHub do not match the tested copy:\n\n' + report.join('\n\n') + '\n\nSend a screenshot of this to Claude.';
       var b = document.createElement('button');
       b.textContent = 'Play anyway';
       b.style.cssText = 'margin-top:14px;min-height:48px;padding:0 18px;border-radius:10px;border:2px solid #1B1500;background:#FFD23F;color:#1B1500;font:600 16px system-ui';
       b.onclick = function () { start(parts); };
-      m.appendChild(t); m.appendChild(b);
+      m.appendChild(box); m.appendChild(b);
       return;
     }
     start(parts);
